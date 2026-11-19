@@ -1,0 +1,36 @@
+name: ci
+on:
+  push:
+    branches: [master]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Placeholders for the build and the end-to-end run against the local mock. No real keys.
+      BETTER_AUTH_SECRET: ci-placeholder-secret-0123456789abcdef0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+      NUVION_BASE_URL: http://localhost:4010
+      NUVION_API_KEY: ci-mock-key
+      NUVION_WEBHOOK_SECRET: nv_wsk_local_test_secret
+      DB_PATH: ./ci.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: End-to-end against the mock Nuvion
+        run: |
+          npm run migrate -- --yes
+          npm run mock > mock.log 2>&1 &
+          npm start > app.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/auth/ok > /dev/null && curl -sf http://localhost:4010/_calls > /dev/null && break; sleep 2; done
+          node scripts/e2e.mjs | tee e2e.log
+          grep -q '"status":"settled"' e2e.log
+      - if: failure()
+        run: tail -n 40 mock.log app.log

@@ -1,5 +1,35 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+/** A string kept in localStorage, read without a flash and without setting state from an effect. */
+function useStored(key: string, fallback: string) {
+  const subscribe = (notify: () => void) => {
+    window.addEventListener("storage", notify);
+    window.addEventListener(`stored:${key}`, notify);
+    return () => {
+      window.removeEventListener("storage", notify);
+      window.removeEventListener(`stored:${key}`, notify);
+    };
+  };
+  const read = () => {
+    try {
+      return localStorage.getItem(key) || fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const value = useSyncExternalStore(subscribe, read, () => fallback);
+  const set = (next: string) => {
+    try {
+      localStorage.setItem(key, next);
+    } catch {
+      // Storage can be blocked; the choice then lasts until the page closes.
+    }
+    document.documentElement.setAttribute(`data-${key}`, next);
+    window.dispatchEvent(new Event(`stored:${key}`));
+  };
+  return [value, set] as const;
+}
 
 const PATHS: Record<string, string> = {
   arrow: "M5 12h14M13 6l6 6-6 6",
@@ -7,7 +37,8 @@ const PATHS: Record<string, string> = {
   gear: "M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14.2 3h-4l-.4 2.7a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2l.4 2.7h4l.4-2.7a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z",
   check: "M5 12.5l4.5 4.5L19 7.5",
   x: "M6 6l12 12M18 6L6 18",
-  repeat: "M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5",
+  repeat:
+    "M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5",
   key: "M14 10a4 4 0 11-3.5 6H8v-2H6v-2l4.5-4.5A4 4 0 0114 10zM16 8h.01",
   sun: "M12 17a5 5 0 100-10 5 5 0 000 10zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
   moon: "M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z",
@@ -20,33 +51,78 @@ const PATHS: Record<string, string> = {
   bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
 };
 
-export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {
+export function Icon({
+  name,
+  size = 18,
+}: {
+  name: keyof typeof PATHS | string;
+  size?: number;
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d={PATHS[name]} />
     </svg>
   );
 }
 
-export function Avatar({ name, color, size = 44 }: { name: string; color: string; size?: number }) {
-  const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-  return <span className="avatar" style={{ background: color, width: size, height: size, fontSize: size * 0.36 }}>{initials}</span>;
+export function Avatar({
+  name,
+  color,
+  size = 44,
+}: {
+  name: string;
+  color: string;
+  size?: number;
+}) {
+  const initials = name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  return (
+    <span
+      className="avatar"
+      style={{
+        background: color,
+        width: size,
+        height: size,
+        fontSize: size * 0.36,
+      }}
+    >
+      {initials}
+    </span>
+  );
 }
 
-const MODES = [["light", "sun"], ["dark", "moon"], ["system", "auto"]] as const;
+const MODES = [
+  ["light", "sun"],
+  ["dark", "moon"],
+  ["system", "auto"],
+] as const;
 
 export function ThemeSwitcher() {
-  const [mode, setMode] = useState("system");
-  useEffect(() => setMode(localStorage.getItem("theme") || "system"), []);
-  const pick = (m: string) => {
-    setMode(m);
-    localStorage.setItem("theme", m);
-    document.documentElement.dataset.theme = m;
-  };
+  const [mode, pick] = useStored("theme", "system");
   return (
     <div className="theme" role="group" aria-label="Theme">
       {MODES.map(([m, icon]) => (
-        <button key={m} onClick={() => pick(m)} aria-pressed={mode === m} title={m[0].toUpperCase() + m.slice(1)} aria-label={m}>
+        <button
+          key={m}
+          onClick={() => pick(m)}
+          aria-pressed={mode === m}
+          title={m[0].toUpperCase() + m.slice(1)}
+          aria-label={m}
+        >
           <Icon name={icon} size={16} />
         </button>
       ))}
@@ -54,15 +130,28 @@ export function ThemeSwitcher() {
   );
 }
 
-const ACCENTS = [["pink", "#d3166a"], ["plum", "#7b2f96"], ["blue", "#2456b8"], ["teal", "#0b7a70"], ["coral", "#c2410c"]] as const;
+const ACCENTS = [
+  ["pink", "#d3166a"],
+  ["plum", "#7b2f96"],
+  ["blue", "#2456b8"],
+  ["teal", "#0b7a70"],
+  ["coral", "#c2410c"],
+] as const;
 
 export function AccentPicker() {
-  const [a, setA] = useState("pink");
-  useEffect(() => setA(localStorage.getItem("accent") || "pink"), []);
-  const pick = (v: string) => { setA(v); localStorage.setItem("accent", v); document.documentElement.dataset.accent = v; };
+  const [a, pick] = useStored("accent", "pink");
   return (
     <div className="accents" role="group" aria-label="Accent colour">
-      {ACCENTS.map(([name, color]) => <button key={name} style={{ background: color }} aria-pressed={a === name} title={name} aria-label={name + " accent"} onClick={() => pick(name)} />)}
+      {ACCENTS.map(([name, color]) => (
+        <button
+          key={name}
+          style={{ background: color }}
+          aria-pressed={a === name}
+          title={name}
+          aria-label={name + " accent"}
+          onClick={() => pick(name)}
+        />
+      ))}
     </div>
   );
 }

@@ -11,11 +11,11 @@ The plugin (`@umohpyro/better-auth-nuvion`, one package) is installed from npm l
 You need a Nuvion account in the **test environment** with an approved entity and one account. Everything runs in your own tenant with your own key.
 
 1. **Sign up** on the app.
-2. **Settings, step 1: connect your sandbox.** Create a sandbox secret API key in the [Nuvion sandbox dashboard](https://app.nuvion.dev/dashboard/settings) (use the **Owner** role: it can list entities, create webhooks and move funds). Paste it, press *Look up*, pick your entity and the account that receives payments, then *Save*.
-3. **Settings, step 2: create your webhook.** Press *Create my webhook*. The app registers a webhook in your sandbox that points at your personal URL (`/api/nuvion/webhook/<token>`) and stores its signing secret on the server. Without a webhook, payments stay `pending`. Nuvion only delivers to **https** URLs, so use the hosted app (or a tunnel) rather than plain `localhost`.
+2. **Settings, step 1: connect your sandbox.** Create a sandbox secret API key in the [Nuvion sandbox dashboard](https://app.nuvion.dev/dashboard/settings) (use the **Owner** role: it can list entities, create webhooks and move funds). Paste it, press _Look up_, pick your entity and the account that receives payments, then _Save_.
+3. **Settings, step 2: create your webhook.** Press _Create my webhook_. The app registers a webhook in your sandbox that points at your personal URL (`/api/nuvion/webhook/<token>`) and stores its signing secret on the server. Without a webhook, payments stay `pending`. Nuvion only delivers to **https** URLs, so use the hosted app (or a tunnel) rather than plain `localhost`.
 4. **Settings, step 3 (optional): watch deliveries in Hookbox.** Open [Hookbox](https://hook.umoh.name.ng), create an inbox, paste its capture URL into the app, and every event Nuvion sends is also shown there with headers, body, timing and a signature check.
-5. **Organizations.** Create one to three organizations (a lone Merchant, Platform and Merchant, or Platform, Reseller and Merchant), set the parents if you have more than one (for example Merchant under Reseller under Platform; depth is capped at 3 and cycles are rejected), and press *Give each organization its own account*. That creates one dedicated GBP account per organization in your sandbox (named `better-auth-nuvion: <name>`, reused if it already exists) and binds it. Each organization needs a **different** account, because a book transfer needs another account to land in. Then set a **fee rule** on the reseller and the merchant (what its parent takes from its payments: basis points, flat, min, cap, and who pays it). *Prepare transfers* is optional: the plugin creates the Nuvion counterparties it needs itself the first time a transfer needs one.
-6. **Payments.** Create a checkout for the Merchant, open it, and pay with the sandbox bank (any bank works). Nuvion sends `inflows.completed` to your webhook, the plugin moves each share with a **real sandbox book transfer** from the Merchant's account to its parents' accounts, and Nuvion confirms each with `outflows.completed`. The shares appear under *Your payments*, refreshing by itself. Use *Retry failed legs* and *Refund* to try recovery.
+5. **Organizations.** Create one to three organizations (a lone Merchant, Platform and Merchant, or Platform, Reseller and Merchant), set the parents if you have more than one (for example Merchant under Reseller under Platform; depth is capped at 3 and cycles are rejected), and press _Give each organization its own account_. That creates one dedicated GBP account per organization in your sandbox (named `better-auth-nuvion: <name>`, reused if it already exists) and binds it. Each organization needs a **different** account, because a book transfer needs another account to land in. Then set a **fee rule** on the reseller and the merchant (what its parent takes from its payments: basis points, flat, min, cap, and who pays it). _Prepare transfers_ is optional: the plugin creates the Nuvion counterparties it needs itself the first time a transfer needs one.
+6. **Payments.** Create a checkout for the Merchant, open it, and pay with the sandbox bank (any bank works). Nuvion sends `inflows.completed` to your webhook, the plugin moves each share with a **real sandbox book transfer** from the Merchant's account to its parents' accounts, and Nuvion confirms each with `outflows.completed`. The shares appear under _Your payments_, refreshing by itself. Use _Retry failed legs_ and _Refund_ to try recovery.
 
 ## What is real
 
@@ -25,7 +25,7 @@ Everything is real activity in your own Nuvion test tenant: the funding session 
 
 - The key is **encrypted (AES-256-GCM) on the server** before it is stored and is never sent back to the browser. It is used only for your requests and your webhook events, only against the Nuvion sandbox host.
 - It is stored server-side, not in a cookie, because splits and retries are triggered by Nuvion's webhooks when no browser is open.
-- *Disconnect* deletes the key and the webhooks the app created for you.
+- _Disconnect_ deletes the key and the webhooks the app created for you.
 - How a delivery flows: Nuvion → `/api/nuvion/webhook/<token>` (verifies your webhook secret, HMAC-SHA256 over `{timestamp}.{raw body}`) → the plugin's own webhook handler, re-signed with an internal secret.
 
 ## Run it yourself
@@ -39,15 +39,15 @@ npm run build && npm start     # app on :3000
 
 Using pnpm, yarn or bun? Swap `npm install` for `pnpm install`, `yarn` or `bun install`, and `npm run <script>` for `pnpm <script>`, `yarn <script>` or `bun run <script>`.
 
-| Variable | Purpose |
-|---|---|
-| `BETTER_AUTH_SECRET` | Required in production. Signs sessions and encrypts stored keys. |
-| `BETTER_AUTH_URL` | The public URL of the app. |
-| `DATABASE_URL` | Postgres connection string. If unset, a local SQLite file (`dev.db`) is used. |
-| `NUVION_BASE_URL` | Defaults to `https://api.nuvion.dev`. |
-| `TRUSTED_ORIGINS` | Comma-separated origins allowed to call the app. Defaults to the live demo's two addresses, so set your own. |
+| Variable                                  | Purpose                                                                                                                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BETTER_AUTH_SECRET`                      | Required in production. Signs sessions and encrypts stored keys.                                                                                                                     |
+| `BETTER_AUTH_URL`                         | The public URL of the app.                                                                                                                                                           |
+| `DATABASE_URL`                            | Postgres connection string. If unset, a local SQLite file (`dev.db`) is used.                                                                                                        |
+| `NUVION_BASE_URL`                         | Defaults to `https://api.nuvion.dev`.                                                                                                                                                |
+| `TRUSTED_ORIGINS`                         | Comma-separated origins allowed to call the app. Defaults to the live demo's two addresses, so set your own.                                                                         |
 | `NUVION_API_KEY`, `NUVION_WEBHOOK_SECRET` | **Operator mode** (local development and scripts): one shared key and webhook secret from the environment. Per-visitor keys still take priority. Leave unset on a public deployment. |
-| `DEMO_SIMULATE=1` | Local mock only: adds "Simulate inflow" and "Simulate transfers completed" buttons. Never set it on a public deployment. |
+| `DEMO_SIMULATE=1`                         | Local mock only: adds "Simulate inflow" and "Simulate transfers completed" buttons. Never set it on a public deployment.                                                             |
 
 ### Local development against the mock
 
@@ -68,12 +68,12 @@ vercel deploy --prod
 
 ## Layout
 
-| Path | What |
-|---|---|
-| `lib/auth.ts` | `betterAuth` with `organization()`, `apiKey()`, the plugin, and a tiny credentials table plugin |
-| `lib/nuvion-fetch.ts` | The `fetch` handed to the plugin: per-visitor key and host pin |
-| `app/api/nuvion/webhook/[token]` | Per-visitor webhook receiver and verifier |
-| `app/api/settings` | Connect, create webhook, Hookbox monitor, disconnect |
-| `app/api/demo` | Demo-only helpers (read the visitor's data; local-mock webhook simulation) |
+| Path                             | What                                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `lib/auth.ts`                    | `betterAuth` with `organization()`, `apiKey()`, the plugin, and a tiny credentials table plugin |
+| `lib/nuvion-fetch.ts`            | The `fetch` handed to the plugin: per-visitor key and host pin                                  |
+| `app/api/nuvion/webhook/[token]` | Per-visitor webhook receiver and verifier                                                       |
+| `app/api/settings`               | Connect, create webhook, Hookbox monitor, disconnect                                            |
+| `app/api/demo`                   | Demo-only helpers (read the visitor's data; local-mock webhook simulation)                      |
 
 Never commit keys: `.env*` is git-ignored (except `.env.example`).

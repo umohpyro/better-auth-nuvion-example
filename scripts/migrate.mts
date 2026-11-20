@@ -23,21 +23,32 @@ const auth = betterAuth({
   baseURL: "http://localhost:3000",
   secret: "migration-only-secret-not-used-for-anything-0123456789",
   emailAndPassword: { enabled: true },
-  plugins: [organization(), apiKey(), demoCredentials, nuvion({ apiKey: "migration-only", webhookSecret: "migration-only" })],
+  plugins: [
+    organization(),
+    apiKey(),
+    demoCredentials,
+    nuvion({ apiKey: "migration-only", webhookSecret: "migration-only" }),
+  ],
 });
 
-const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(auth.options);
+const { toBeCreated, toBeAdded, runMigrations } = await getMigrations(
+  auth.options,
+);
 
 if (!toBeCreated.length && !toBeAdded.length) {
   console.log("Nothing to migrate: the database already matches the schema.");
   process.exit(0);
 }
-for (const t of toBeCreated) console.log(`create table ${t.table}: ${Object.keys(t.fields).join(", ")}`);
-for (const t of toBeAdded) console.log(`add to ${t.table}: ${Object.keys(t.fields).join(", ")}`);
+for (const t of toBeCreated)
+  console.log(`create table ${t.table}: ${Object.keys(t.fields).join(", ")}`);
+for (const t of toBeAdded)
+  console.log(`add to ${t.table}: ${Object.keys(t.fields).join(", ")}`);
 
 if (!process.argv.includes("--yes")) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const answer = (await rl.question("Apply these changes? (y/N) ")).trim().toLowerCase();
+  const answer = (await rl.question("Apply these changes? (y/N) "))
+    .trim()
+    .toLowerCase();
   rl.close();
   if (answer !== "y" && answer !== "yes") {
     console.log("Cancelled, nothing changed.");

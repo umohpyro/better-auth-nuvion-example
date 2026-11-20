@@ -10,15 +10,25 @@ import { deleteCreds, loadCreds } from "@/lib/tenant";
  */
 export async function DELETE(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!session)
+    return Response.json({ error: "unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
-  if (body?.confirm !== "DELETE") return Response.json({ error: 'Send {"confirm":"DELETE"} to confirm.' }, { status: 400 });
+  if (body?.confirm !== "DELETE")
+    return Response.json(
+      { error: 'Send {"confirm":"DELETE"} to confirm.' },
+      { status: 400 },
+    );
 
   const userId = session.user.id;
   const c = await loadCreds(userId);
   if (c) {
     for (const id of [c.creds.webhookId, c.creds.monitorId]) {
-      if (id) await nuvionAs(c.creds.apiKey, "DELETE", `/entity-webhooks/${id}?entity_id=${c.creds.entityId}`).catch(() => {});
+      if (id)
+        await nuvionAs(
+          c.creds.apiKey,
+          "DELETE",
+          `/entity-webhooks/${id}?entity_id=${c.creds.entityId}`,
+        ).catch(() => {});
     }
     await deleteCreds(userId);
   }

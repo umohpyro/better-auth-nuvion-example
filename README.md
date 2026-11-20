@@ -4,7 +4,7 @@ A Next.js app that shows the `better-auth-nuvion` plugin: **one payment, a share
 
 The plugin (`@umohpyro/better-auth-nuvion`, one package) is installed from npm like any other dependency. No symlinks, workspaces or `transpilePackages`.
 
-**Live demo:** https://better-auth-nuvion-example.umoh.name.ng (runs against Nuvion's test environment, no real money; see the [privacy notice](https://better-auth-nuvion-example.umoh.name.ng/privacy) and [terms](https://better-auth-nuvion-example.umoh.name.ng/terms), and delete your data any time from Settings). **Plugin docs:** https://better-auth-nuvion.umoh.name.ng. Security reports: see [SECURITY.md](SECURITY.md).
+**Live demo:** https://better-auth-nuvion-example.umoh.name.ng (runs against Nuvion's test environment, no real money; see the [privacy notice](https://better-auth-nuvion-example.umoh.name.ng/privacy) and [terms](https://better-auth-nuvion-example.umoh.name.ng/terms), and delete your data any time from Settings). **Plugin docs:** https://docs.better-auth-nuvion.umoh.name.ng. Security reports: see [SECURITY.md](SECURITY.md).
 
 ## Try it (about 5 minutes)
 

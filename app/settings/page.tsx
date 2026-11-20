@@ -17,6 +17,15 @@ export default function Settings() {
   const { toast, refresh } = useData();
   const [st, setSt] = useState<Status | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const deleteMyAccount = async () => {
+    setDeleting(true);
+    const r = await fetch("/api/account", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: "DELETE" }) });
+    if (r.ok) { window.location.href = "/"; return; }
+    setDeleting(false);
+    toast("Could not delete the account. Try again.", true);
+  };
   const [lookup, setLookup] = useState<Lookup | null>(null);
   const [entityId, setEntityId] = useState("");
   const [accountId, setAccountId] = useState("");
@@ -140,6 +149,12 @@ export default function Settings() {
             <li>Why on the server and not in a cookie: splits and retries are triggered by Nuvion&apos;s webhooks, when no browser is open.</li>
             <li><b>Disconnect</b> deletes your key from this server and removes the webhooks this app created in your sandbox.</li>
           </ul>
+        </section>
+        <section className="card pad">
+          <h3>Delete my account</h3>
+          <p className="hint">Removes your account and everything this demo holds about you: your organizations with their payments and settings, your Nuvion connection (and the webhooks the demo created in your Nuvion account), your sessions and your sign-in. This cannot be undone. See the <a href="/privacy">privacy notice</a>.</p>
+          <label className="field"><span>Type DELETE to confirm</span><input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" /></label>
+          <button className="btn soft" disabled={confirmText !== "DELETE" || deleting} onClick={deleteMyAccount}>{deleting ? "Deleting…" : "Delete my account and data"}</button>
         </section>
       </main>
     </>

@@ -18,7 +18,8 @@
     "mock": "node mock-nuvion/server.mjs",
     "migrate": "tsx scripts/migrate.mts",
     "typecheck": "next typegen && tsc --noEmit",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "e2e:delete": "node scripts/e2e-delete.mjs"
   },
   "dependencies": {
     "@better-auth/api-key": "^1.7.25",

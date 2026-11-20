@@ -34,6 +34,7 @@ export type Payment = {
   baseMinor: number;
   currency: string;
   status: string;
+  method?: string;
   createdAt: number;
   legs: Leg[];
 };

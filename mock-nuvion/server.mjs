@@ -1,4 +1,4 @@
-// Tiny Nuvion mock (shapes from nuvion-docs): POST /funding-sessions, POST /transfers, and what the plugin needs to create
+// Tiny Nuvion mock (shapes from nuvion-docs): POST /funding-sessions (Open Banking, and Interac: no checkout page, waits for a PATCH), POST /transfers, and what the plugin needs to create
 // book-transfer counterparties: GET /accounts/{id}, POST /counterparties, POST /payment-details. GET /_calls lists what it received.
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
@@ -8,6 +8,7 @@ const seen = new Set();
 const sessions = new Map(); // funding session id -> what GET /funding-sessions/{id} returns. The mock payer pays instantly: always settled.
 const transfers = new Map(); // our unique_reference -> the transfer. The mock settles instantly: always successful.
 let failTransfers = null; // POST /_mode {"transfers": 422|500|null} makes POST /transfers fail
+let interacNext = "processing"; // POST /_interac {"outcome": "processing"|"settled"|"failed"}: what the next PATCH moves an Interac session to
 createServer((req, res) => {
   let raw = "";
   req.on("data", (c) => (raw += c));
@@ -15,6 +16,7 @@ createServer((req, res) => {
     const send = (s, b) => { res.writeHead(s, { "content-type": "application/json" }); res.end(JSON.stringify(b)); };
     if (req.url === "/_calls") return send(200, calls);
     const body = raw ? JSON.parse(raw) : {};
+    if (req.method === "POST" && req.url === "/_interac") { interacNext = body.outcome ?? "processing"; return send(200, { interacNext }); }
     if (req.method === "POST" && req.url === "/_mode") { failTransfers = body.transfers ?? null; return send(200, { failTransfers }); }
     calls.push({ method: req.method, path: req.url, hasBearer: /^Bearer .+/.test(req.headers.authorization ?? ""), body });
     console.log(req.method, req.url, JSON.stringify(body));
@@ -22,12 +24,25 @@ createServer((req, res) => {
     if (req.method === "GET" && acct) return send(200, { data: { account: { id: acct[1], nuvion_ban: "ban_" + acct[1], currency: "GBP" } } });
     if (req.method === "POST" && req.url === "/counterparties") return send(201, { data: { id: "cp_" + randomUUID().slice(0, 8), ...body } });
     if (req.method === "POST" && req.url === "/payment-details") return send(201, { data: { id: "pd_" + randomUUID().slice(0, 8), ...body } });
+    if (req.method === "POST" && req.url === "/funding-sessions" && body.funding_type === "interac") {
+      // An Interac request is emailed to the payer. There is no checkout page, and the session stays awaiting_user until a PATCH.
+      const id = "fs_" + randomUUID().slice(0, 8);
+      sessions.set(id, { id, status: "awaiting_user", unique_reference: body.unique_reference, amount: body.amount, currency: body.currency, narration: body.narration, meta: body.meta });
+      return send(201, { data: { id, status: "awaiting_user", unique_reference: body.unique_reference, currency: body.currency, amount: body.amount, reference_number: "CA" + id.slice(3), requires_authentication: false } });
+    }
     if (req.method === "POST" && req.url === "/funding-sessions") {
       const id = "fs_" + randomUUID().slice(0, 8);
       sessions.set(id, { id, status: "settled", unique_reference: body.unique_reference, amount: body.amount, currency: body.currency });
       return send(201, { data: { id, status: "awaiting_user", ...body, checkout_url: "https://checkout.mock.nuvion.test/" + body.unique_reference } });
     }
     const fsMatch = /^\/funding-sessions\/([^?]+)/.exec(req.url);
+    if (req.method === "PATCH" && fsMatch) {
+      const s = sessions.get(fsMatch[1]);
+      if (!s) return send(404, { type: "error_not_found" });
+      if (s.status === "settled" || s.status === "failed") return send(400, { type: "error_funding_request_not_pending" });
+      s.status = interacNext;
+      return send(201, { data: { id: s.id, status: s.status } });
+    }
     if (req.method === "GET" && fsMatch) return sessions.has(fsMatch[1]) ? send(200, { data: sessions.get(fsMatch[1]) }) : send(404, { type: "error_not_found" });
     if (req.method === "GET" && req.url.startsWith("/transfers?")) {
       const t = transfers.get(new URL(req.url, "http://mock").searchParams.get("unique_reference") ?? "");

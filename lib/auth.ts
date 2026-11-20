@@ -10,7 +10,13 @@ import { BASE_URL, pluginSecret } from "./tenant";
 export const auth = betterAuth({
   database: db,
   // Origins that may call this app, comma-separated in TRUSTED_ORIGINS. The default is the live demo's own two addresses; set yours.
-  trustedOrigins: (process.env.TRUSTED_ORIGINS ?? "https://better-auth-nuvion-example.vercel.app,https://better-auth-nuvion-example.umoh.name.ng").split(",").map((o) => o.trim()).filter(Boolean),
+  trustedOrigins: (
+    process.env.TRUSTED_ORIGINS ??
+    "https://better-auth-nuvion-example.vercel.app,https://better-auth-nuvion-example.umoh.name.ng"
+  )
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
   emailAndPassword: { enabled: true },
   plugins: [
     organization(),

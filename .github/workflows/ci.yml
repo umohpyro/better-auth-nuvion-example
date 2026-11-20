@@ -32,5 +32,6 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://localhost:3000/api/auth/ok > /dev/null && curl -sf http://localhost:4010/_calls > /dev/null && break; sleep 2; done
           node scripts/e2e.mjs | tee e2e.log
           grep -q '"status":"settled"' e2e.log
+          node scripts/e2e-delete.mjs
       - if: failure()
         run: tail -n 40 mock.log app.log

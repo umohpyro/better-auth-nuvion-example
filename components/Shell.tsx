@@ -45,6 +45,8 @@ function AuthCard() {
   );
 }
 
+const PUBLIC_PATHS = ["/privacy", "/terms"]; // readable without signing in
+
 export default function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const session = authClient.useSession();
@@ -70,9 +72,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="main">
         <div className="top">{brand}<nav>{links}{docsLink}<ThemeSwitcher /><AccentPicker /></nav></div>
-        {session.isPending ? null : session.data ? <DataProvider>{children}</DataProvider> : <AuthCard />}
+        {PUBLIC_PATHS.includes(path) ? children : session.isPending ? null : session.data ? <DataProvider>{children}</DataProvider> : <AuthCard />}
         <footer className="foot">
-          Sandbox demo for the <a href={DOCS_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>better-auth-nuvion</a> plugin (<a href={DOCS_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>read the docs</a>). It only talks to the Nuvion sandbox, with your own key, which is encrypted on the server and never sent back to your browser. No real money moves.
+          A demo for the <a href={DOCS_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>better-auth-nuvion</a> plugin (<a href={DOCS_URL} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>read the docs</a>). It runs against Nuvion&apos;s test environment with your own key, which is encrypted on the server and never sent back to your browser. No real money moves. <a href="/privacy" style={{ textDecoration: "underline" }}>Privacy</a> · <a href="/terms" style={{ textDecoration: "underline" }}>Terms</a> · <a href="https://github.com/umohpyro/better-auth-nuvion-example" target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>Source</a>
         </footer>
       </div>
     </div>

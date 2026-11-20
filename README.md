@@ -4,11 +4,11 @@ A Next.js app that shows the `better-auth-nuvion` plugin: **one payment, a share
 
 The plugin (`@umohpyro/better-auth-nuvion`, one package) is installed from npm like any other dependency. No symlinks, workspaces or `transpilePackages`.
 
-**Live demo:** https://better-auth-nuvion-example.umoh.name.ng (Nuvion **sandbox** only, no real money). **Plugin docs:** https://better-auth-nuvion.umoh.name.ng.
+**Live demo:** https://better-auth-nuvion-example.umoh.name.ng (runs against Nuvion's test environment, no real money; see the [privacy notice](https://better-auth-nuvion-example.umoh.name.ng/privacy) and [terms](https://better-auth-nuvion-example.umoh.name.ng/terms), and delete your data any time from Settings). **Plugin docs:** https://better-auth-nuvion.umoh.name.ng. Security reports: see [SECURITY.md](SECURITY.md).
 
 ## Try it (about 5 minutes)
 
-You need a Nuvion **sandbox** account with an approved entity and one account. Everything runs in your own tenant with your own key.
+You need a Nuvion account in the **test environment** with an approved entity and one account. Everything runs in your own tenant with your own key.
 
 1. **Sign up** on the app.
 2. **Settings, step 1: connect your sandbox.** Create a sandbox secret API key in the [Nuvion sandbox dashboard](https://app.nuvion.dev/dashboard/settings) (use the **Owner** role: it can list entities, create webhooks and move funds). Paste it, press *Look up*, pick your entity and the account that receives payments, then *Save*.
@@ -19,7 +19,7 @@ You need a Nuvion **sandbox** account with an approved entity and one account. E
 
 ## What is real
 
-Everything is real sandbox activity in your own Nuvion tenant: the funding session and checkout, the signed webhooks, the counterparties and payment details the plugin creates, and the book transfers between your accounts (sandbox money, nothing real). Refunds reverse the shares back to the merchant's account; they do not pay the customer back (Nuvion documents no refund API for funding-session inflows). Nuvion does not charge for book transfers, so each leg costs exactly its amount.
+Everything is real activity in your own Nuvion test tenant: the funding session and checkout, the signed webhooks, the counterparties and payment details the plugin creates, and the book transfers between your accounts (sandbox money, nothing real). Refunds reverse the shares back to the merchant's account; they do not pay the customer back (Nuvion documents no refund API for funding-session inflows). Nuvion does not charge for book transfers, so each leg costs exactly its amount.
 
 ## Your key and your webhooks
 

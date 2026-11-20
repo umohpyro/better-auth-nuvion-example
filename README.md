@@ -37,6 +37,8 @@ npm run migrate -- --yes   # creates ./dev.db (SQLite), or uses DATABASE_URL for
 npm run build && npm start     # app on :3000
 ```
 
+Using pnpm, yarn or bun? Swap `npm install` for `pnpm install`, `yarn` or `bun install`, and `npm run <script>` for `pnpm <script>`, `yarn <script>` or `bun run <script>`.
+
 | Variable | Purpose |
 |---|---|
 | `BETTER_AUTH_SECRET` | Required in production. Signs sessions and encrypts stored keys. |

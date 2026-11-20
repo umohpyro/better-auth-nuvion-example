@@ -8,7 +8,10 @@ import { colorFor, money } from "@/lib/palette";
 
 type Receipt = {
   paymentId: string;
-  checkoutUrl: string;
+  method: string;
+  checkoutUrl: string | null;
+  referenceNumber: string | null;
+  payerEmail?: string;
   chargedMinor: number;
   legs: { organizationId: string; amountMinor: number }[];
   baseMinor: number;
@@ -21,6 +24,7 @@ const STATUS: Record<string, string> = {
   refunded: "ok",
   partial: "bad",
   failed: "bad",
+  expired: "info",
   refund_partial: "bad",
 };
 const LABEL: Record<string, string> = {
@@ -31,6 +35,8 @@ const LABEL: Record<string, string> = {
   partial: "Needs attention: a leg failed",
   refund_partial: "Refunding",
   refunded: "Refunded",
+  failed: "Not paid: declined or unanswered",
+  expired: "Expired unpaid",
 };
 const LEG_CLASS: Record<string, string> = {
   completed: "completed",
@@ -45,6 +51,11 @@ export default function Payments() {
   const { state, org, call, demo, toast, refresh, depth } = useData();
   const [busy, setBusy] = useState(false);
   const [r, setR] = useState<Receipt | null>(null);
+  const [method, setMethod] = useState<"open-banking" | "interac">(
+    "open-banking",
+  );
+  // One key per new payment: pressing the button twice, or a retry, returns the same payment.
+  const [key, setKey] = useState(() => crypto.randomUUID());
   const live = !!state?.payments.some((p) => LIVE.includes(p.status));
   useEffect(() => {
     if (!live) return;
@@ -76,11 +87,18 @@ export default function Payments() {
     >;
     setBusy(true);
     const base = Math.round(Number(v.amount) * 100);
+    const interac = method === "interac";
     const res = await authClient.nuvion.payments({
       organizationId: v.org,
       amountMinor: base,
-      currency: v.currency.toUpperCase(),
-      redirectUrl: v.redirect,
+      currency: (interac ? "CAD" : v.currency).toUpperCase(),
+      idempotencyKey: key,
+      ...(interac
+        ? {
+            method: "interac",
+            payer: { name: v.payerName, email: v.payerEmail },
+          }
+        : { redirectUrl: v.redirect }),
     });
     setBusy(false);
     if (res.error || !res.data)
@@ -88,9 +106,11 @@ export default function Payments() {
     setR({
       ...res.data,
       baseMinor: base,
-      currency: v.currency.toUpperCase(),
+      currency: (interac ? "CAD" : v.currency).toUpperCase(),
       orgId: v.org,
+      payerEmail: interac ? v.payerEmail : undefined,
     });
+    setKey(crypto.randomUUID());
     refresh();
   };
   const fee = r
@@ -158,6 +178,23 @@ export default function Payments() {
                 ))}
               </select>
             </label>
+            <label className="field">
+              <span>How the customer pays</span>
+              <select
+                name="method"
+                value={method}
+                onChange={(e) =>
+                  setMethod(e.target.value as "open-banking" | "interac")
+                }
+              >
+                <option value="open-banking">
+                  Open Banking: a hosted bank page (GBP or EUR)
+                </option>
+                <option value="interac">
+                  Interac e-Transfer: a request emailed to the payer (CAD)
+                </option>
+              </select>
+            </label>
             <div className="cols">
               <label className="field">
                 <span>Amount</span>
@@ -174,22 +211,44 @@ export default function Payments() {
                 <span>Currency</span>
                 <input
                   name="currency"
-                  defaultValue="GBP"
+                  key={method}
+                  defaultValue={method === "interac" ? "CAD" : "GBP"}
+                  readOnly={method === "interac"}
                   maxLength={3}
                   minLength={3}
                   required
                 />
               </label>
             </div>
-            <label className="field">
-              <span>Where the customer returns after paying (https)</span>
-              <input
-                name="redirect"
-                type="url"
-                defaultValue={redirectDefault}
-                required
-              />
-            </label>
+            {method === "open-banking" ? (
+              <label className="field">
+                <span>Where the customer returns after paying (https)</span>
+                <input
+                  name="redirect"
+                  type="url"
+                  defaultValue={redirectDefault}
+                  required
+                />
+              </label>
+            ) : (
+              <div className="cols">
+                <label className="field">
+                  <span>
+                    Payer name (letters, digits, spaces, hyphen, full stop)
+                  </span>
+                  <input
+                    name="payerName"
+                    pattern="[A-Za-z0-9 .'\-]+"
+                    defaultValue="Ada Lovelace"
+                    required
+                  />
+                </label>
+                <label className="field">
+                  <span>Payer email (the request is sent here)</span>
+                  <input name="payerEmail" type="email" required />
+                </label>
+              </div>
+            )}
             <button
               className="btn primary"
               disabled={busy || !state.connection.connected}
@@ -204,7 +263,9 @@ export default function Payments() {
             className="card pad receipt"
             style={{ ["--c" as string]: colorFor(r.orgId) }}
           >
-            <span className="badge info">Checkout created</span>
+            <span className="badge info">
+              {r.checkoutUrl ? "Checkout created" : "Interac request sent"}
+            </span>
             <div className="big">{money(r.chargedMinor, r.currency)}</div>
             <p>
               {fee > 0
@@ -230,33 +291,61 @@ export default function Payments() {
                 </span>
               ))}
             </div>
-            <ol className="steps-text left">
-              <li>
-                Open the checkout and pay with the sandbox bank (any bank works;
-                no real money moves).
-              </li>
-              <li>
-                Nuvion sends the <code>inflows.completed</code> webhook to your
-                URL, and the plugin moves each share with a book transfer
-                between your accounts.
-              </li>
-              <li>
-                Watch the shares appear under <b>Your payments</b> below. Nuvion
-                then confirms each transfer with an{" "}
-                <code>outflows.completed</code> webhook. This page refreshes by
-                itself.
-              </li>
-            </ol>
-            <div className="actions" style={{ justifyContent: "center" }}>
-              <a
-                className="btn primary"
-                href={r.checkoutUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open checkout
-              </a>
-            </div>
+            {!r.checkoutUrl ? (
+              <ol className="steps-text left">
+                <li>
+                  Nuvion emailed an Interac e-Transfer request to{" "}
+                  <b>{r.payerEmail}</b>
+                  {r.referenceNumber ? (
+                    <>
+                      {" "}
+                      (reference <code>{r.referenceNumber}</code>)
+                    </>
+                  ) : null}
+                  . There is no checkout page.
+                </li>
+                <li>
+                  The payer accepts it in a Canadian bank. Nuvion only checks
+                  with the bank when asked, so press <b>Check now</b> on the
+                  payment below (or let the reconcile run). The sandbox cannot
+                  accept an Interac request.
+                </li>
+                <li>
+                  When it settles the shares move as CAD book transfers. A
+                  declined or unanswered request ends as <b>failed</b>.
+                </li>
+              </ol>
+            ) : (
+              <ol className="steps-text left">
+                <li>
+                  Open the checkout and pay with the sandbox bank (any bank
+                  works; no real money moves).
+                </li>
+                <li>
+                  Nuvion sends the <code>inflows.completed</code> webhook to
+                  your URL, and the plugin moves each share with a book transfer
+                  between your accounts.
+                </li>
+                <li>
+                  Watch the shares appear under <b>Your payments</b> below.
+                  Nuvion then confirms each transfer with an{" "}
+                  <code>outflows.completed</code> webhook. This page refreshes
+                  by itself.
+                </li>
+              </ol>
+            )}
+            {r.checkoutUrl && (
+              <div className="actions" style={{ justifyContent: "center" }}>
+                <a
+                  className="btn primary"
+                  href={r.checkoutUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open checkout
+                </a>
+              </div>
+            )}
           </section>
         )}
 
@@ -291,10 +380,17 @@ export default function Payments() {
                   {money(p.chargedMinor, p.currency)}
                 </div>
                 <small className="mono">{p.reference}</small>
+                {p.method === "interac" && (
+                  <span className="chip" style={{ marginLeft: 8 }}>
+                    Interac
+                  </span>
+                )}
                 {p.legs.length === 0 ? (
                   <p className="hint" style={{ marginTop: 12 }}>
                     {p.status === "pending"
-                      ? "No shares yet. They are created when Nuvion sends the inflows.completed webhook after the checkout is paid."
+                      ? p.method === "interac"
+                        ? "No shares yet. They are created when the payer accepts the Interac request and Nuvion settles it. Press Check now to ask Nuvion."
+                        : "No shares yet. They are created when Nuvion sends the inflows.completed webhook after the checkout is paid."
                       : "No shares: this payment is not split."}
                   </p>
                 ) : (
@@ -358,6 +454,21 @@ export default function Payments() {
                         Simulate transfers completed (local only)
                       </button>
                     )}
+                  {p.status === "pending" && (
+                    <button
+                      className="btn soft sm"
+                      onClick={() =>
+                        call(
+                          authClient.nuvion.payments.refresh({
+                            paymentId: p.id,
+                          }),
+                        )
+                      }
+                    >
+                      <Icon name="repeat" size={16} />
+                      Check now
+                    </button>
+                  )}
                   {["partial", "splitting"].includes(p.status) && (
                     <button
                       className="btn primary sm"
@@ -371,9 +482,13 @@ export default function Payments() {
                       Retry failed legs
                     </button>
                   )}
-                  {!["pending", "refunded", "refund_partial"].includes(
-                    p.status,
-                  ) && (
+                  {![
+                    "pending",
+                    "failed",
+                    "expired",
+                    "refunded",
+                    "refund_partial",
+                  ].includes(p.status) && (
                     <button
                       className="btn soft sm"
                       onClick={() => {

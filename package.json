@@ -22,11 +22,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "e2e": "node scripts/e2e.mjs",
-    "e2e:delete": "node scripts/e2e-delete.mjs"
+    "e2e:delete": "node scripts/e2e-delete.mjs",
+    "e2e:interac": "node scripts/e2e-interac.mjs"
   },
   "dependencies": {
     "@better-auth/api-key": "^1.7.25",
-    "@umohpyro/better-auth-nuvion": "^0.5.0",
+    "@umohpyro/better-auth-nuvion": "^0.7.0",
     "better-auth": "^1.7.25",
     "next": "^16.4.6",
     "pg": "^8.23.1",

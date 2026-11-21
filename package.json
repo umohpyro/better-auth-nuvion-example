@@ -15,6 +15,7 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
+    "vercel-build": "npm run migrate -- --yes && next build",
     "mock": "node mock-nuvion/server.mjs",
     "migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.mts",
     "typecheck": "next typegen && tsc --noEmit",

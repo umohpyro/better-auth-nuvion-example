@@ -24,11 +24,9 @@ export async function DELETE(req: Request) {
   if (c) {
     for (const id of [c.creds.webhookId, c.creds.monitorId]) {
       if (id)
-        await nuvionAs(
-          c.creds.apiKey,
-          "DELETE",
-          `/entity-webhooks/${id}?entity_id=${c.creds.entityId}`,
-        ).catch(() => {});
+        await nuvionAs(c.creds.apiKey, "DELETE", `/entity-webhooks/${id}`, {
+          entity_id: c.creds.entityId,
+        }).catch(() => {});
     }
     await deleteCreds(userId);
   }

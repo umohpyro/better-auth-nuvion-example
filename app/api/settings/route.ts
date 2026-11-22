@@ -158,7 +158,8 @@ export async function POST(req: Request) {
         await nuvionAs(
           c.creds.apiKey,
           "DELETE",
-          `/entity-webhooks/${c.creds.webhookId}?entity_id=${c.creds.entityId}`,
+          `/entity-webhooks/${c.creds.webhookId}`,
+          { entity_id: c.creds.entityId },
         ).catch(() => {}); // replace, do not duplicate
       let hook;
       try {
@@ -196,7 +197,8 @@ export async function POST(req: Request) {
         await nuvionAs(
           c.creds.apiKey,
           "DELETE",
-          `/entity-webhooks/${c.creds.monitorId}?entity_id=${c.creds.entityId}`,
+          `/entity-webhooks/${c.creds.monitorId}`,
+          { entity_id: c.creds.entityId },
         ).catch(() => {});
       const hook = await createHook(
         c.creds.apiKey,
@@ -256,11 +258,9 @@ export async function POST(req: Request) {
       if (c)
         for (const id of [c.creds.webhookId, c.creds.monitorId])
           if (id)
-            await nuvionAs(
-              c.creds.apiKey,
-              "DELETE",
-              `/entity-webhooks/${id}?entity_id=${c.creds.entityId}`,
-            ).catch(() => {}); // clean up what we created
+            await nuvionAs(c.creds.apiKey, "DELETE", `/entity-webhooks/${id}`, {
+              entity_id: c.creds.entityId,
+            }).catch(() => {}); // clean up what we created
       await deleteCreds(uid);
       return Response.json({ ok: true });
     }

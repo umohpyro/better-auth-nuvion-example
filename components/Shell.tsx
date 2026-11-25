@@ -42,7 +42,8 @@ function AuthCard() {
         <h1>Split every payment across your hierarchy.</h1>
         <p>
           One checkout, one inflow, and the plugin moves each parent&apos;s
-          share with book transfers. Sign in to try it against the mock Nuvion.
+          share with book transfers. Sign in to try it against your own Nuvion
+          sandbox.
         </p>
       </header>
       <form
